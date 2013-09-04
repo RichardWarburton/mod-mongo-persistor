@@ -25,9 +25,10 @@ The mongo-persistor module takes the following configuration:
         "port": <port>,
         "db_name": <db_name>,
         "pool_size": <pool_size>,
-        "fake": <fake>
+        "fake": <fake>,
+		"useSSL": <bool>
     }
-    
+
 For example:
 
     {
@@ -46,6 +47,24 @@ Let's take a look at each field in turn:
 * `db_name` Name of the database in the MongoDB instance to use. Defaults to `default_db`.
 * `pool_size` The number of socket connections the module instance should maintain to the MongoDB server. Default is 10.
 * `fake` If true then a fake in memory Mongo DB server is used instead (using Fongo). Useful for testing!
+* `useSSL` enable SSL based connections.  See http://docs.mongodb.org/manual/tutorial/configure-ssl/ for more details. Defaults to `false`.
+
+### Replsets or sharding
+
+If you want to use sharding or a replica set then you need to provide a list of seed addresses, these take
+priority over the host/port combination.  For example:
+
+    {
+        "address": "test.my_persistor",
+        "seeds": [
+            { host: "192.168.1.100", port: 27000 },
+            { host: "192.168.1.101", port: 27001 }
+        ],
+        "pool_size": 20,
+        "db_name": "my_db"
+    }
+
+The seeds variable takes a list of objects which specify the host and port of each member of your seed list.
 
 ## Operations
 
@@ -167,6 +186,7 @@ To find documents send a JSON message to the module main address:
         "keys": <keys>,
         "skip": <offset>,
         "limit": <limit>,
+        "timeout": <cursor timeout>,
         "batch_size": <batch_size>
     }
     
@@ -177,6 +197,7 @@ Where:
 * `keys` is an optional JSON object that contains the fields that should be returned for matched documents. See MongoDB manual for more information. Example: { "name": 1 } will only return objects with _id and the name field
 * `skip` is a number which determines the number of documents to skip. This is optional. By default no documents are skipped.
 * `limit` is a number which determines the maximum total number of documents to return. This is optional. By default all documents are returned.
+* `timeout` is a positive number which determines how many milliseconds a cursor containing more data will be held onto. This is optional. By default, a cursor is held onto for 10 seconds.
 * `batch_size` is a number which determines how many documents to return in each reply JSON message. It's optional and the default value is `100`. Batching is discussed in more detail below.
 
 An example would be:
@@ -283,7 +304,7 @@ For instance, in JavaScript you might do something like:
         matcher: {}        
     }, createReplyHandler());
     
-If there is more data to be requested and you do not reply to get the next batch within a timeout (10 seconds), then the underlying MongoDB cursor will be closed, and any further attempts to request more will fail.    
+If there is more data to be requested and you do not reply to get the next batch within a timeout (see `timeout parameter`), then the underlying MongoDB cursor will be closed, and any further attempts to request more will fail.    
     
 
 ### Find One
